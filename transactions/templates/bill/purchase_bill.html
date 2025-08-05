@@ -1,0 +1,169 @@
+{% extends bill_base %}
+{% load static %}
+
+{% block title %} Purchase Bill No : {{ bill.billno }}{% endblock title %}
+
+{% block content %}
+<div style="color:#575757; font-style: bold; font-size: 3rem; border-bottom: 1px solid white;">Purchase Bill No : {{ bill.billno }}</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="bg">
+        <br>
+        <div id="printArea" class="bg">
+            <table class="outer-box inner-box" style="width: 840px; margin: auto;">
+                <tbody>
+                    <tr><td style="text-align: center;">TAX INVOICE - PURCHASE</td></tr>
+                    <tr style="text-align: center;">
+                        <td>
+                            <span style="font-size: 350%;">DJANGOIMS</span><br>
+                            <span style="font-size: 120%; font-weight: bold;">DEALERS IN : Products</span><br>
+                            <span style="font-weight: bold;">REGD ADDRESS :</span> Hetauda-14, Makawanpur<br>
+                            <span style="font-weight: bold;">EMAIL : djangoims@gmail.com</span><br><br>
+                        </td>
+                    </tr>
+
+                    <!-- Supplier Info -->
+                    <tr>
+                        <td>
+                            <table class="outer-box" style="width: 800px; margin: auto;">
+                                <tbody>
+<!--                                    <tr><td class="inner-box" colspan="3" style="text-align: center; font-weight: bold;">PAN NO - 123456789CASTR0</td></tr>-->
+                                    <tr>
+                                        <td class="inner-box" style="width: 50%; font-weight: bold;">NAME OF CONSIGNEE / SUPPLIER</td>
+                                        <td class="inner-box" style="width: 25%; font-weight: bold;">INVOICE NO</td>
+                                        <td class="inner-box">{{ bill.billno }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-box">{{ bill.supplier.name }}</td>
+                                        <td class="inner-box" style="font-weight: bold;">DATE</td>
+                                        <td class="inner-box">{{ bill.time.date }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-box" rowspan="3">{{ bill.supplier.address|linebreaks }}</td>
+                                        <td class="inner-box" style="font-weight: bold;">EWAY NO</td>
+                                        <td class="inner-box"><input type="text" name="eway" style="border: 0;" value="{{ billdetails.eway|default:'' }}"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-box" style="font-weight: bold;">VEH NO</td>
+                                        <td class="inner-box"><input type="text" name="veh" style="border: 0;" value="{{ billdetails.veh|default:'' }}"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-box" style="font-weight: bold;">DESTINATION</td>
+                                        <td class="inner-box"><input type="text" name="destination" style="border: 0;" value="{{ billdetails.destination|default:'' }}"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-box" style="font-weight: bold;">PAN No : {{ bill.supplier.gstin }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Items -->
+                    <tr>
+                        <td>
+                            <table class="outer-box" style="width: 800px; margin: auto;">
+                                <thead>
+                                    <tr>
+                                        <th class="inner-box" style="width: 5%;">SL</th>
+                                        <th class="inner-box" style="width: 30%;">GOODS</th>
+                                        <th class="inner-box" style="width: 12%;">QTY</th>
+                                        <th class="inner-box" style="width: 12%;">RATE</th>
+                                        <th class="inner-box" style="width: 12%;">AMOUNT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td class="inner-box">{{ forloop.counter }}</td>
+                                        <td class="inner-box">{{ item.stock.name }}</td>
+                                        <td class="inner-box">{{ item.quantity }}</td>
+                                        <td class="inner-box">{{ item.perprice }}</td>
+                                        <td class="inner-box text-right"><span class="amount">{{ item.totalprice }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Tax & Total -->
+                    <tr>
+                        <td>
+                            <table class="outer-box inner-box" style="width: 800px; margin: auto;">
+                                <tbody>
+                                    <tr>
+                                        <td class="inner-box" rowspan="2" style="width: 35%; text-align: center;">
+                                            <strong>BANK DETAILS <br> Sushant Bidari</strong><br>
+                                            Siddhartha Bank Limited<br>AC NO-02519641030<br>Hetauda BRANCH<br>PH NO - 9804225576
+                                        </td>
+                                        <td class="inner-box" style="font-weight: bold;">VAT @ 13%</td>
+                                        <td class="inner-box">
+                                            <span id="vat_13">0.00</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="inner-box" style="font-weight: bold;">TOTAL</td>
+                                        <td class="inner-box">
+                                            <span id="total">0.00</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Signature -->
+                    <tr>
+                        <td style="text-align: right;">
+                            <strong>FOR COMPANY <br><br><br><br> Signature</strong>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <br><br>
+
+        <div class="wrapper">
+            <button type="button" class="center btn btn-primary" onclick="printpage('printArea')">Print</button>
+            <button type="submit" class="center btn btn-success">Save Draft</button>
+            <a href="{% url 'purchases-list' %}" class="btn center btn-secondary">Go Back</a>
+        </div>
+    </div>
+</form>
+
+<!-- VAT/Total Script -->
+<script>
+    function calculateTotalWithVAT() {
+        const amounts = document.querySelectorAll('.amount');
+        let subtotal = 0;
+        amounts.forEach(span => {
+            const value = parseFloat(span.textContent.trim());
+            if (!isNaN(value)) subtotal += value;
+        });
+
+        const vat = subtotal * 0.13;
+        const total = subtotal + vat;
+
+        document.getElementById('vat_13').textContent = vat.toFixed(2);
+        document.getElementById('total').textContent = total.toFixed(2);
+    }
+
+    function printpage(divId) {
+        calculateTotalWithVAT();
+        setTimeout(() => {
+            const printContents = document.getElementById(divId).innerHTML;
+            const originalContents = document.body.innerHTML;
+
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+            location.reload();
+        }, 100);
+    }
+
+    window.onload = calculateTotalWithVAT;
+</script>
+{% endblock %}
